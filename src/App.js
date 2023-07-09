@@ -1,47 +1,31 @@
 import React from 'react';
-import SpeechRecognition, { useSpeechRecognition } from 'react-speech-recognition'
+import SpeechRecognition, { useSpeechRecognition } from 'react-speech-recognition';
 
+function App () {
+  const { listening, transcript,resetTranscript } = useSpeechRecognition();
 
-function App() {
-  const {
-    transcript,
-    listening,
-    resetTranscript,
-    browserSupportsSpeechRecognition
-  } = useSpeechRecognition();
-  
-  if (!browserSupportsSpeechRecognition) {
-    return <span>Browser doesn't support speech recognition.</span>;
-  }
+  const handleStartListening = () => {
+    SpeechRecognition.startListening({continuous: true});
+  };
 
-  const b_onclick = () => {
-    SpeechRecognition.startListening();
+  const handleStopListening = () => {
+    SpeechRecognition.stopListening();
+    sendTranscriptToAPI(transcript);
+    resetTranscript();
+  };
+
+  const sendTranscriptToAPI = (transcript) => {
+    console.log('Transcript:', transcript);
   };
 
   return (
     <div>
       <p>Microphone: {listening ? 'on' : 'off'}</p>
-      <button onClick={b_onclick}>Start</button>
-      <button onClick={SpeechRecognition.stopListening}>Stop</button>
-      <button onClick={resetTranscript}>Reset</button>
+      <button onClick={handleStartListening} disabled={listening}>音声入力開始</button>
+      <button onClick={handleStopListening} disabled={!listening}>音声入力終了</button>
       <p>{transcript}</p>
     </div>
   );
-  // function b_onclick(){
-  //   const recognition = SpeechRecognition.SpeechRecognition();
-  //   recognition.onresult = (event) => {
-  //     console.log(event);
-  //   }
-  //   SpeechRecognition.recognition.start();
-  // }
-
-  // return (
-  //   <div>
-  //     <button onClick={b_onclick}>音声入力開始</button>
-  //   </div>
-  // );
-
-
-}
+};
 
 export default App;
