@@ -1,5 +1,6 @@
 import React,{ useState } from 'react';
 import SpeechRecognition, { useSpeechRecognition } from 'react-speech-recognition';
+import './Microphone.css';
 
 function Microphone () {
     const { listening, transcript, resetTranscript } = useSpeechRecognition();
@@ -34,13 +35,14 @@ function Microphone () {
     };
   
     return (
-      <div>
+      <div class="microphoneBlock">
         <p>Microphone: {listening ? 'on' : 'off'}</p>
-        <button onClick={handleStartListening} disabled={listening}>音声入力開始</button>
-        <button onClick={handleStopListening} disabled={!listening}>音声入力終了</button>
-        <button onClick={resetTranscript}>リセット</button>
-
-        <p>音声認識:{transcript}</p>
+        <div class="buttons">
+          <button onClick={handleStartListening} disabled={listening}>音声入力開始</button>
+          <button onClick={handleStopListening} disabled={!listening}>音声入力終了</button>
+          <button onClick={resetTranscript}>リセット</button>
+        </div>
+        <p>送信内容(音声認識):{transcript}</p>
         <p>返答結果:{result}</p>
       </div>
     );
