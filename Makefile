@@ -5,5 +5,3 @@ build:
 
 clean:
 	rm -rf ./bin
-
-deploy: clean build
