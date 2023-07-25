@@ -1,71 +1,67 @@
-import React,{ useState } from 'react';
-import SpeechRecognition, { useSpeechRecognition } from 'react-speech-recognition';
-import './Microphone.css';
+import React, { useState, useEffect } from 'react';
 
-function Microphone () {
-    const { listening, transcript, resetTranscript } = useSpeechRecognition();
-    const [result, setResult] = useState("");
-    const [text, setText] = useState("");
-    const [log,setLog] = useState([]);
-  
-    const handleStartListening = () => {
-      SpeechRecognition.startListening({continuous: true});
-    };
-  
+const Microphone = () => {
+  const [isRecording, setIsRecording] = useState(false);
+  const [socket, setSocket] = useState(null);
+  const [mediaStream, setMediaStream] = useState(null);
+  const [mediaRecorder, setMediaRecorder] = useState(null);
 
-    const handleStopListening = () => {
-      SpeechRecognition.stopListening();
-      setLog([...log,`user:${transcript}`])
-      setTimeout(sendTranscriptToAPI(transcript),5000);
-    };
-  
-    const sendTranscriptToAPI = async(transcript) => {
-      await fetch("https://pi4c8iu2g5.execute-api.us-east-1.amazonaws.com/default/chat-server?text=" + transcript, {method: 'GET', headers: {'Content-Type': 'application/json'}, mode: 'cors'})
-      .then(res => {
-        if (res.ok) {
-          return res.json();
-        } else {
-          setText("Error");
-          throw new Error('APIリクエストエラー: ' + res.status);
-        }          
-      })
-      .then(data => {
-        setText("DONE!");
-        setLog([...log,`system:${data.result}`])
-        setResult(data.result);
-      })
-      .catch((e) => {
-        setText("Error");
-        console.error('Failed to check authorization status', e);
-      })
+  useEffect(() => {
+    const ws = new WebSocket('ws://localhost:8080/ws');
+    setSocket(ws);
 
-      setText("Loading");
-      resetTranscript();
+    return () => {
+      ws.close();
     };
-  
-    return (
-      <div class="microphoneBlock">
-        <p>Microphone: {listening ? 'on' : 'off'}</p>
-        <div class="buttons">
-          <button onClick={handleStartListening} disabled={listening}>音声入力開始</button>
-          <button onClick={handleStopListening} disabled={!listening}>音声入力終了</button>
-          <button onClick={resetTranscript}>リセット</button>
-        </div>
-        <p>送信内容(音声認識):{transcript}</p>
-        <p>返答結果:{result}</p>
-        <p>status:{text}</p>
-        <p>Log</p>
-        {
-          (function () {
-            const list = [];
-            for (const t of log) {
-              list.push(<li>{t}</li>);
-            }
-            return <ul>{list}</ul>;
-          }())
+  }, []);
+
+  const handleStartRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+      const recorder = new MediaRecorder(stream);
+      const chunks = [];
+
+      recorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          chunks.push(event.data);
+          if (socket.readyState === WebSocket.OPEN) {
+            socket.send(event.data);
+          }
         }
-      </div>
-    );
+      };
+
+      // 録音を開始
+      recorder.start();
+
+      setIsRecording(true);
+      setMediaStream(stream);
+      setMediaRecorder(recorder);
+    } catch (error) {
+      console.error('Error accessing microphone:', error);
+    }
   };
-  
-  export default Microphone;
+
+  const handleStopRecording = () => {
+    if (mediaRecorder) {
+      mediaRecorder.stop();
+      mediaStream.getTracks().forEach((track) => track.stop());
+      setIsRecording(false);
+    }
+  };
+
+  return (
+    <div className="App">
+      <header className="App-header">
+        <h1>WebSocket Mic Streaming</h1>
+        {!isRecording ? (
+          <button onClick={handleStartRecording}>Start Recording</button>
+        ) : (
+          <button onClick={handleStopRecording}>Stop Recording</button>
+        )}
+      </header>
+    </div>
+  );
+};
+
+export default Microphone;
